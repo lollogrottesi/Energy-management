@@ -11,8 +11,8 @@ num_sample = 5000; %Number of samples in the workload.
 active_vector = generateUniformDistribution(0, 1, 500, num_sample);
 %idle_vector = generateUniformDistribution(0, 1, 400, num_sample);
 %idle_vector = generateTrimodalDistribution(50, 10, 100, 10, 150, 10, num_sample);
-%idle_vector = generateGaussianDistribution(100, 20, num_sample);
-idle_vector = generateExponentialDistribution(50, num_sample);
+idle_vector = generateGaussianDistribution(100, 20, num_sample);
+%idle_vector = generateExponentialDistribution(50, num_sample);
 
 %Plot.
 figure(1)
@@ -44,10 +44,17 @@ T_active    = T_active(1:num_sample_train-1)';
 %myFit = fittype('k0 + k1*x + k2*y + k3*x*y + k4*x*(y^2) + k5*(x^2)*y + k6*(x^2) + k7*(y^2)', 'dependent', 'z', 'independent', {'x', 'y'}, 'coefficients', {'k0', 'k1', 'k2', 'k3','k4', 'k5','k6', 'k7'});
 %myFit = fittype('k0 + k1*x + k2*y + k3*x*y + k4*(y^2)', 'dependent', 'z', 'independent', {'x', 'y'}, 'coefficients', {'k0', 'k1', 'k2', 'k3','k4'});
 %myFit = fittype('k0 + k1*x + k2*y + k3*(x^2)', 'dependent', 'z', 'independent', {'x', 'y'}, 'coefficients', {'k0', 'k1', 'k2', 'k3'});
-myFit = fittype('k0 + k1*x + k2*y ', 'dependent', 'z', 'independent', {'x', 'y'}, 'coefficients', {'k0', 'k1', 'k2'});
-pred_T_idle = fit ([T_idle_i_1, T_active], T_idle, myFit);
+%myFit = fittype('k0 + k1*x + k2*y ', 'dependent', 'z', 'independent', {'x', 'y'}, 'coefficients', {'k0', 'k1', 'k2'});
 
-plot (pred_T_idle, [T_idle_i_1, T_active], T_idle);
+myFit = fittype('k0 + k1*x', 'dependent', 'z', 'independent', {'x'}, 'coefficients', {'k0', 'k1'});
+
+%pred_T_idle = fit ([T_idle_i_1, T_active], T_idle, myFit);
+%plot (pred_T_idle, [T_idle_i_1, T_active], T_idle);
+
+pred_T_idle = fit (T_idle_i_1, T_idle, myFit);
+
+plot (pred_T_idle, T_idle_i_1, T_idle);
+
 title('Periodical 800 us reduced fit');
 xlabel('T idle [i-1]');
 ylabel('T active [i]');
