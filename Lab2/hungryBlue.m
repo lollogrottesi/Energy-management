@@ -1,6 +1,6 @@
 %The function rescale the blue component by the percentage value.
 %If percentage = 100% all blue components are cleared.
-%If percentage = 50% all the blue components reamin untouched.
+%If percentage = 0% all the blue components reamin untouched.
 
 function new_image = hungryBlue (hungryImg, percentage)
    
