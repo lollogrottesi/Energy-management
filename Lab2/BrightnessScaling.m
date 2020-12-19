@@ -22,6 +22,6 @@ function new_image = BrightnessScaling (hungryImg, scalingPercentage)
             HSV(i, j, 2) = HSV(i, j, 2) / K;
          end
     end 
-    new_image = hsv2rgb(HSV);
+    new_image = im2uint8(hsv2rgb(HSV));
     
 end

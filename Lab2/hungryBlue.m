@@ -15,7 +15,7 @@ function new_image = hungryBlue (hungryImg, percentage)
     
     for i = 1:height
          for j = 1:width
-            new_image(i, j, 3) = hungryImg(i, j, 3) -(hungryImg(i, j, 3))*(percentage/100);
+            new_image(i, j, 3) = floor(double(hungryImg(i, j, 3)) - double(hungryImg(i, j, 3))*(double(percentage)/100));
          end
      end 
 end

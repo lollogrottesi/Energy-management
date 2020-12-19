@@ -9,8 +9,10 @@ function distortion = ImgDist (Imgi, Imgj)
      distortion = 0;
      for i = 1:height
          for j = 1:width
-             distortion = sqrt ( (LabImgi(i, j, 1) - LabImgj(i, j, 1))^2 + (LabImgi(i, j, 2) - LabImgj(i, j, 2))^2 + (LabImgi(i, j, 3) - LabImgj(i, j, 3))^2);
+             distortion =  distortion + (LabImgi(i, j, 1) - LabImgj(i, j, 1))^2 + (double(LabImgi(i, j, 2)) - double(LabImgj(i, j, 2)))^2 + (double(LabImgi(i, j, 3)) - double(LabImgj(i, j, 3)))^2;
          end
      end 
-     distortion = (distortion/(width*height*374.2325))*100; %Compute distortion percentage.
+     distortion = sqrt(double(distortion));
+     max_dst = width*height*374.2325;
+     distortion = (distortion/max_dst)*100; %Compute distortion percentage.
 end
