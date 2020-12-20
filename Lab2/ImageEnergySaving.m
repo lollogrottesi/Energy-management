@@ -1,5 +1,5 @@
 %% Algorithm part 1.
-dstThreshold = 1; % 1%, 5%, 10%.
+dstThreshold = 10; % 1%, 5%, 10%.
 rootFolder = pwd;
 
 dataFolder = rootFolder + "\dataset";
@@ -10,6 +10,7 @@ imgLst = tmpLst;
 imgLst(1, :) = []; %cut '. '
 imgLst(1, :) = []; %cut '.. '
 i=1;
+
 %pattern = '.+(tiff|jpg|JPG|PNG|png)\s*$';
 while i < length(imgLst)
     if contains(imgLst(i,:), 'Thumbs.db')
@@ -20,13 +21,12 @@ while i < length(imgLst)
     %else
     %    imgLst(i,:) = [];          %Drop string.
     %end
-    %i=i+1;
+    i=i+1;
 end
 
 cd (rootFolder);
 energy_saving = zeros(length(imgLst), 1);
 dst_img = zeros(length(imgLst), 1);
-%%
     for i = 1:length(imgLst)
         cd (dataFolder);
         X = imread(imgLst(i,:));
@@ -36,6 +36,7 @@ dst_img = zeros(length(imgLst), 1);
             X = cat(3, X, X, X);%Concatenate gray image for 3 times (R, G, B).
             Y = X; 
             pwrY_init = ImgPwr (Y);
+            
             %Brightness optimization.
             Y_tmp = BrightnessScaling(Y, dstThreshold);%Reduce dstThreshold% of brightness.
             dist = (1 - ssim(Y, Y_tmp))*100;
@@ -103,8 +104,10 @@ dst_img = zeros(length(imgLst), 1);
     end
 mean(energy_saving)
 cd (rootFolder);
-%%
+%Average for dstMax 1% is 0.9703 % saving.
+%Average for dstMax 5% is 4.9897 % saving.
+%Average for dstMax 10% is 9.6808 % saving.
+%% Reset environment.
 clc
 clear
-cd (rootFolder);
 %%
