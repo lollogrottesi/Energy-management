@@ -1,5 +1,5 @@
 %% Algorithm part 1.
-dstThreshold = 10; % 1%, 5%, 10%.
+dstThreshold = 1; % 1%, 5%, 10%.
 rootFolder = pwd;
 
 dataFolder = rootFolder + "\dataset";
@@ -32,75 +32,49 @@ dst_img = zeros(length(imgLst), 1);
         X = imread(imgLst(i,:));
         cd (rootFolder);
         %Start energy reduction algorithm.
-        if length(size(X)) == 2 %Gray images algorithm.
-            X = cat(3, X, X, X);%Concatenate gray image for 3 times (R, G, B).
-            Y = X; 
-            pwrY_init = ImgPwr (Y);
+        
+        %Gray images are not considered.
             
-            %Brightness optimization.
-            Y_tmp = BrightnessScaling(Y, dstThreshold);%Reduce dstThreshold% of brightness.
-            dist = (1 - ssim(Y, Y_tmp))*100;
-            pwrTmp = ImgPwr (Y_tmp);
-            if dist <= dstThreshold && pwrTmp < pwrY_init  %If possible keep transformation.
-                Y = Y_tmp;
-            end  
-            
-            %Histogram equalization.
-            Y_tmp = histeq(Y);
-            dist = (1 - ssim(Y, Y_tmp))*100;
-            pwrTmp = ImgPwr (Y_tmp);
-            if dist <= dstThreshold && pwrTmp < pwrY_init %If possible keep transformation.
-                Y = Y_tmp;
-            end
+        %Start transformation algorithm for RGB.
+        Y = X;
+        pwrY_init = ImgPwr (Y);
+        %Exctract color features.
+        [avgR, avgG, avgB] = colorAvg(Y);
+        max_R_G = max(avgR, avgG); 
 
-            %Power / Distance exctraction.
-            pwrX = ImgPwr (X);
-            pwrY = ImgPwr (Y);
-            dst_img(i) = (1 - ssim(X, Y))*100;
-            energy_saving(i) = ((pwrX - pwrY)/pwrX)*100;
-            
-        else %RGB images algorithm.
-            
-            %Start transformation algorithm for RGB.
-            Y = X;
-            pwrY_init = ImgPwr (Y);
-            %Exctract color features.
-            [avgR, avgG, avgB] = colorAvg(Y);
-            max_R_G = max(avgR, avgG); 
+        %Brightness optimization.
+        Y_tmp = BrightnessScaling(Y, dstThreshold);%Reduce dstThreshold% of brightness.
+        dist = (1 - ssim(Y, Y_tmp))*100;
+        pwrTmp = ImgPwr (Y_tmp);
+        if dist <= dstThreshold && pwrTmp < pwrY_init  %If possible keep transformation.
+            Y = Y_tmp;
+        end
 
-            %Brightness optimization.
-            Y_tmp = BrightnessScaling(Y, dstThreshold);%Reduce dstThreshold% of brightness.
-            dist = (1 - ssim(Y, Y_tmp))*100;
-            pwrTmp = ImgPwr (Y_tmp);
-            if dist <= dstThreshold && pwrTmp < pwrY_init  %If possible keep transformation.
-                Y = Y_tmp;
-            end
-
-            %Hungry blue optimization.
-            if avgB > max_R_G %Check if Blue average is greater than both Red and Green.
-                k_blue = (double(avgB - max_R_G)/double(avgB))*100;%Percentage distance.
-                Y_tmp = hungryBlue(Y, k_blue);                     %Reduce k% of blue.
-                dist = (1 - ssim(Y, Y_tmp))*100;
-                pwrTmp = ImgPwr (Y_tmp);
-                if dist <= dstThreshold && pwrTmp < pwrY_init %If possible keep transformation.
-                    Y = Y_tmp;
-                end
-            end
-
-            %Histogram equalization.
-            Y_tmp = histeq(Y);
+        %Hungry blue optimization.
+        if avgB > max_R_G %Check if Blue average is greater than both Red and Green.
+            k_blue = (double(avgB - max_R_G)/double(avgB))*100;%Percentage distance.
+            Y_tmp = hungryBlue(Y, k_blue);                     %Reduce k% of blue.
             dist = (1 - ssim(Y, Y_tmp))*100;
             pwrTmp = ImgPwr (Y_tmp);
             if dist <= dstThreshold && pwrTmp < pwrY_init %If possible keep transformation.
                 Y = Y_tmp;
             end
+        end
 
-            %Power / Distance exctraction.
-            pwrX = ImgPwr (X);
-            pwrY = ImgPwr (Y);
-            dst_img(i) = (1 - ssim(X, Y))*100;
-            energy_saving(i) = ((pwrX - pwrY)/pwrX)*100;
-        end 
+        %Histogram equalization.
+        Y_tmp = histeq(Y);
+        dist = (1 - ssim(Y, Y_tmp))*100;
+        pwrTmp = ImgPwr (Y_tmp);
+        if dist <= dstThreshold && pwrTmp < pwrY_init %If possible keep transformation.
+            Y = Y_tmp;
+        end
+
+        %Power / Distance exctraction.
+        pwrX = ImgPwr (X);
+        pwrY = ImgPwr (Y);
+        dst_img(i) = (1 - ssim(X, Y))*100;
+        energy_saving(i) = ((pwrX - pwrY)/pwrX)*100;
+
     end
 mean(energy_saving)
 cd (rootFolder);

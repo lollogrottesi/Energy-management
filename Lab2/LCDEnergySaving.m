@@ -1,4 +1,7 @@
-%%Algorithm part 2 Brightness compensation.
+%% Algorithm for display OLED power optimiziation.
+clc
+clear
+
 dstThreshold = 10; % 1%, 5%, 10%.
 rootFolder = pwd;
 
@@ -21,72 +24,96 @@ end
 cd (rootFolder);
 energy_saving = zeros(length(imgLst), 1);
 dst_img = zeros(length(imgLst), 1);
-%i=11;
+nameLst = "";
+
 for i = 1:length(imgLst)
     cd (dataFolder);
     img_RGB = imread(imgLst(i,:));
+    nameLst(i) = string(imgLst(i, :));
     cd (rootFolder);
-    if length(size(img_RGB)) == 2 %Gray images algorithm.
-            img_RGB = cat(3, img_RGB, img_RGB, img_RGB);%Concatenate gray image for 3 times (R, G, B).
-    end
-    %Start DVS algorithm using brightness compensation.
+
+    %Start DVS algorithm.
     vdd_original = 15;
+    vdd_step = 0.2;
     SATURATED = 1;
-    %Compute original image power consumption.
-    %Result is in mA.
+    %Compute original image power consumption.Result is mW.
     cell_orig = Icell (img_RGB, vdd_original);   
-    %Result is mW.
-    pwr_org = panelPower(cell_orig, vdd_original);     
-    %Apply BrightnessCompensation dstThreshold% factor.
-    tmp_DVS = LCDBrightnessCompensation (img_RGB, dstThreshold/100); 
-
-    %Select a starting vdd_taget < vdd_original = 15V.
-    vdd_target = vdd_original*(100 - dstThreshold)/100;
-
-    %Compute tmp power.
-    tmp_DVS_cell = Icell(tmp_DVS, vdd_target);
-    tmp_DVS_pwr = panelPower(tmp_DVS_cell, vdd_target);
-    %Apply DVS and compute distance.
-    img_original_sat = displayed_image(cell_orig, vdd_original, SATURATED);
-    tmp_img_DVS_sat = displayed_image(tmp_DVS_cell, vdd_target, SATURATED);
-    dst = (1 - ssim(img_original_sat, tmp_img_DVS_sat))*100;
-
+    pwr_org = panelPower(cell_orig, vdd_original);
+    %Update the img_RGB variable with saturated one. The optimization will
+    %be curried with respect this variable.
+    img_RGB = uint8(displayed_image(cell_orig, vdd_original, SATURATED));
+    
+    %Initialize cost variables.
+    img_DVS_sat = img_RGB;
     DVS_pwr = pwr_org;
-    img_DVS_sat = img_original_sat;
-    %Check if there is a local minima of vdd respecting dstThreshold.
-    while tmp_DVS_pwr < DVS_pwr && dst <= dstThreshold 
-        %Take new image, update DVS_pwr.
-        img_DVS_sat = tmp_img_DVS_sat;
-        DVS_pwr = tmp_DVS_pwr;
-        %Reduce VDD.
-        vdd_target = vdd_target - 0.5;
-        %Recompute tmp_DVS_pwr.
-        tmp_DVS_cell = Icell(tmp_DVS, vdd_target);
-        tmp_DVS_pwr = panelPower(tmp_DVS_cell, vdd_target);
-        %Compute new saturated image.
-        tmp_img_DVS_sat = displayed_image(tmp_DVS_cell, vdd_target, SATURATED);
-        dst = (1 - ssim(img_original_sat, tmp_img_DVS_sat))*100;
+    
+    %Decrease vdd_taget.
+    vdd_target = vdd_original - vdd_step;
+    
+    %Check the optimal transformation. 
+    %Apply all 3 transformations: BrightnessCompensation,
+    %ContrastEnhancement and both. optimalTransformation function will
+    %return  the best trasformation considering the power - distance plain.
+    [tmp_img_DVS_sat, tmp_DVS_pwr, dst] = optimalTransformation(img_RGB, vdd_target, vdd_original, SATURATED);
+    
+    %Check if the transormation respect the distance threshold, try to
+    %reach a local minima iterating the optimalTransformation.
+    while tmp_DVS_pwr < DVS_pwr && dst <= dstThreshold
+        vdd_target = vdd_target - vdd_step;
+        img_DVS_sat = tmp_img_DVS_sat;  %img_DVS_sat is an output of the loop. Rapresent the optimized image.
+        DVS_pwr = tmp_DVS_pwr;          %DVS_pwr is an output of the loop. Rapresent the enrgy of the optimized image.
+        %Check the optimal transformation.
+        [tmp_img_DVS_sat, tmp_DVS_pwr, dst] = optimalTransformation(img_RGB, vdd_target, vdd_original, SATURATED);
     end
     
     %Power / Distance exctraction.
-    dst_img(i) = (1 - ssim(img_original_sat, img_DVS_sat))*100;
+    dst_img(i) = (1 - ssim(img_RGB, img_DVS_sat))*100;
     energy_saving(i) = ((pwr_org - DVS_pwr)/pwr_org)*100;
  
 end
 
-mean(energy_saving)
 cd (rootFolder);
-%Average for dstMax 1% is  % saving.
-%Average for dstMax 5% is  20.8% saving.
-%Average for dstMax 10% is  29.6% saving.
 
-%% Algorithm part 2 Contrast Enhancement.
+clearvars imgLst cell_orig dataFolder dst dstThreshold DVS_pwr i img_DVS_sat img_RGB pwr_org rootFolder SATURATED tmp_DVS_pwr tmp_img_DVS_sat tmpLst vdd_original vdd_step vdd_target ans;
+%Results:
+%Average for dstMax 1%  is  11.8451% saving, max distance 0.998.
+%Average for dstMax 5%  is  26.6767% saving, max distance 4.9988.
+%Average for dstMax 10% is  36.5679% saving, max distance 9.9946.
+%% Save the out vectors in a CSV file.
+csv_matrix(1,:) = nameLst';
+csv_matrix(2,:) = energy_saving;
+csv_matrix(3,:) = dst_img;
+csv_matrix = csv_matrix';
 
-%%
-figure(1);
-imshow(img_original_sat/255);      
-figure(2);
-imshow(img_DVS_sat/255);  
+txtID = fopen('EnergySavingLCD10perc.csv', 'a');
+%Specify the writing format.
+format = '%s;%s;%s\n';
+%Print the matrix according the format.
+fprintf(txtID, format, csv_matrix');
+fclose(txtID);
+
+clearvars delimiter format csv_matrix txtID dataArray startRow ans;
+%% Read CSV and perform analisys
+fileID = fopen('EnergySavingLCD10perc.csv', 'r');
+delimiter = ';';
+startRow = 1;
+%Specify the writing format.
+formatSpec = '%s%f%f%[^\n\r]';
+dataArray = textscan(fileID, formatSpec, 'Delimiter', delimiter, 'TextType', 'string', 'HeaderLines' ,startRow-1, 'ReturnOnError', false, 'EndOfLine', '\r\n');
+fclose(fileID);
+%Extract vectors
+nameLst = dataArray{:, 1};
+energy_saving = dataArray{:, 2};
+dst_img = dataArray{:, 3};
+% Clear temporary variables
+clearvars delimiter formatSpec fileID dataArray startRow ans;
+%% Plot energy saving
+x = 1:length(energy_saving);
+plot(x, energy_saving);
+xlabel('Figure index');
+ylabel('Energy saving');
+title('Image energy saving 1% distance');
+clearvars x
 %% Reset environment.
 clc
 clear
