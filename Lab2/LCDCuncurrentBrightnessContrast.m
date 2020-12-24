@@ -1,7 +1,18 @@
 %The function rescale the blue component by the percentage value.
 
 function new_image = LCDCuncurrentBrightnessContrast (hungryImg, gl, gu)
-    
+    %Check bounds .
+    if (gu < 0)
+        gu = 0;
+    elseif (gu > 1)
+        gu = 1;
+    end
+
+    if (gl < 0)
+        gl = 0;
+    elseif (gl > 1)
+        gl = 1;
+    end 
     %Exctract dimensions.
     height = length(hungryImg(:, 1, 1));
     width  = length(hungryImg(1, :, 1));

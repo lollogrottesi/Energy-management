@@ -1,4 +1,6 @@
 %% Energy - distance computation for the whole dataset. Distance will be report using LAB dst and ssim.
+clc
+clearvars
 
 rootFolder = pwd;
 
@@ -70,7 +72,7 @@ for i = 1:length(imgLst)
 end
 cd (rootFolder);
 
-clearvars cell_mod cell_orig dataFolder i img_RGB img_RGB_mod img_RGB_mod_sat imag_RGB_sat imgLst rootFolder SATURATED tmpLst vdd_original ans;
+clearvars cell_mod cell_orig dataFolder i img_RGB img_RGB_mod img_RGB_mod_sat img_RGB_sat imgLst rootFolder SATURATED tmpLst vdd_original vdd ans;
 %% Save the out vectors in a CSV file.
 csv_matrix(1,:) = nameLst';
 csv_matrix(2,:) = P_img;
@@ -88,6 +90,8 @@ format = '%s;%s;%s;%s;%s;%s;%s;%s\n';
 %Print the matrix according the format.
 fprintf(txtID, format, csv_matrix');
 fclose(txtID);
+
+clearvars delimiter format csv_matrix txtID dataArray startRow ans;
 %% Read CSV and perform analisys
 fileID = fopen('DatasetEnergyDist.csv', 'r');
 delimiter = ';';

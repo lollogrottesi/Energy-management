@@ -89,23 +89,15 @@ vdd_target = vdd_original - vdd_step;
 gl = -((1 - vdd_original/vdd_target)/2 * vdd_target/vdd_original);
 gu = (vdd_target/vdd_original) + gl;
 
-if (gu < 0)
-    gu = 0;
-elseif (gu > 1)
-    gu = 1;
-end
-
-if (gl < 0)
-    gl = 0;
-elseif (gl > 1)
-    gl = 1;
-end 
 %Try an optimization.
 %tmp_DVS = LCDBrightnessCompensation (img_RGB,  (vdd_original/vdd_target - 1)/2);
 %tmp_DVS = LCDContrastEnhancement (img_RGB, vdd_target/vdd_original);
 %tmp_DVS = LCDCuncurrentBrightnessContrast (img_RGB, gl, gu);
 
+%Take the best.
+%tmp_DVS = the best.
 %Compute tmp power.
+
 tmp_DVS_cell = Icell(tmp_DVS, vdd_target);
 tmp_DVS_pwr = panelPower(tmp_DVS_cell, vdd_original);
 %Apply DVS and compute distance.
@@ -151,7 +143,45 @@ figure(1);
 imshow(img_original_sat/255);      
 figure(2);
 imshow(img_DVS_sat/255);  
+%%
+dstThreshold = 1;
+img_RGB = imread('s0.jpg');
 
+%Start DVS algorithm.
+vdd_original = 15;
+vdd_step = 0.2;
+SATURATED = 1;
+%Compute original image power consumption.
+cell_orig = Icell (img_RGB, vdd_original);   
+%Result is mW.
+pwr_org = panelPower(cell_orig, vdd_original);
+img_RGB = uint8(displayed_image(cell_orig, vdd_original, SATURATED));
+%Initialize variables.
+img_DVS_sat = img_RGB;
+DVS_pwr = pwr_org;
+
+%Decrease vdd_taget.
+vdd_target = vdd_original - vdd_step;
+%Check the optimal transformation.
+[tmp_img_DVS_sat, tmp_DVS_pwr, dst] = optimalTransformation(img_RGB, vdd_target, vdd_original, SATURATED);
+
+while tmp_DVS_pwr < DVS_pwr && dst <= dstThreshold
+    vdd_target = vdd_target - vdd_step;
+    img_DVS_sat = tmp_img_DVS_sat;  %img_DVS_sat is an output of the loop. Rapresent the optimized image.
+    DVS_pwr = tmp_DVS_pwr;          %DVS_pwr is an output of the loop. Rapresent the enrgy of the optimized image.
+    %Check the optimal transformation.
+    [tmp_img_DVS_sat, tmp_DVS_pwr, dst] = optimalTransformation(img_RGB, vdd_target, vdd_original, SATURATED);
+end
+
+%Power / Distance exctraction.
+
+dst_img = (1 - ssim(img_RGB, img_DVS_sat))*100;
+energy_saving = ((pwr_org - DVS_pwr)/pwr_org)*100;
+
+figure(1);
+imshow(img_RGB);
+figure(2);
+imshow(tmp_img_DVS_sat);
 %%
 %when Apply DVS remember b = (1/vdd[original]) * vdd[new]
 %when DVS for enhancement b_offstet = 1 - (1/vdd[original]) * vdd[new]

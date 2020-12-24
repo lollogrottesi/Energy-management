@@ -11,6 +11,7 @@ imgLst = ls;
 X = imread('test_1_blue.jpg');
 %figure
 imshow(X);
+pwr = ImgPwr(X);
 %RGB = ind2rgb(X, map);
 %% Exctract RGB channels (marginal).
 %Test on functions.
@@ -125,6 +126,29 @@ figure(1)
 imshow(X);
 figure(2)
 imshow(Z);
+%%
+X = imread('s0.jpg');
+vdd = 12;
+pwr = ImgPwr (X);
+Y = LCDBrightnessCompensation (X,  (15/vdd - 1)/2);
+
+cell_orig = Icell (Y, 15); 
+X_sat = uint8(displayed_image(cell_orig, vdd, 1));
+dst = ImgDist(X, X_sat);
+pwr_panel = panelPower(cell_orig, vdd)/1000;
+dst_ssim_ori = (1 - ssim(X, X_sat))*100;
+figure(1);
+imshow(X);
+figure(2);
+imshow(X_sat);
+%%
+p1 =   4.251e-05;
+p2 =  -3.029e-04;
+p3 =   3.024e-05;
+Vdd_org = 15;
+Vdd = 15;
+I_cell_max = (p1 * Vdd * 1) + (p2 * 1) + p3;
+image_RGB_max = (I_cell_max - p3)/(p1*Vdd_org+p2) * 255;
 %%
 %cd (currentFolder)
 clc
