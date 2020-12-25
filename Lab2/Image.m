@@ -8,11 +8,28 @@ imgLst = ls;
 %%
 %[X, cmap] = imread(imgLst(3,:));
 %X = imread(imgLst(3,:), 1);
-X = imread('test_1_blue.jpg');
-%figure
+clc
+clearvars
+%%
+X = imread('test3.tiff');
+%Y = hungryBlue(X, 20);
+%Y = BrightnessScaling(X, 20);
+Y = histeq(X);
+pwrX = ImgPwr(X);
+pwrY = ImgPwr(Y);
+power_saving = ((pwrX - pwrY)/pwrX)*100;
+
+figure(1);
+subplot(2, 2, 1);
 imshow(X);
-pwr = ImgPwr(X);
-%RGB = ind2rgb(X, map);
+title("Original");
+subplot(2, 2, 2);
+imshow(Y);
+title("Optimized");
+subplot(2, 2, 3);
+showColorDistribution(X);
+subplot(2, 2, 4);
+showColorDistribution(Y);
 %% Exctract RGB channels (marginal).
 %Test on functions.
 X = imread('test.jpg');
@@ -149,6 +166,69 @@ Vdd_org = 15;
 Vdd = 15;
 I_cell_max = (p1 * Vdd * 1) + (p2 * 1) + p3;
 image_RGB_max = (I_cell_max - p3)/(p1*Vdd_org+p2) * 255;
+%%
+%Start transformation algorithm for RGB.
+dstThreshold = 10;
+X = imread('t0.jpg');
+Y = X;
+pwrY_init = ImgPwr (Y);
+
+
+%Histogram equalization.
+Y_tmp = histeq(Y);
+dist = (1 - ssim(X, Y_tmp))*100;
+pwrTmp = ImgPwr (Y_tmp);
+if dist <= dstThreshold && pwrTmp < pwrY_init %If possible keep transformation.
+    w = "Entered histEQ"
+    Y = Y_tmp;
+    pwrY_init = pwrTmp;
+end
+
+%Hungry blue optimization.
+%Exctract color features.
+[avgR, avgG, avgB] = colorAvg(Y);
+max_R_G = max(avgR, avgG); 
+%Reduce blue, if possible.
+if avgB > max_R_G %Check if Blue average is greater than both Red and Green.
+    k_blue = (double(avgB - max_R_G)/double(avgB))*100;%Percentage distance.
+    Y_tmp = hungryBlue(Y, k_blue);                     %Reduce k% of blue.
+    dist = (1 - ssim(X, Y_tmp))*100;
+    pwrTmp = ImgPwr (Y_tmp);
+    if dist <= dstThreshold && pwrTmp < pwrY_init %If possible keep transformation.
+        w = "Entered hungry blue"
+        Y = Y_tmp;
+        pwrY_init = pwrTmp;
+    end
+end
+
+
+
+%Brightness optimization.
+scaling_percentage = 1;
+Y_tmp = BrightnessScaling(Y, scaling_percentage);%Reduce dstThreshold% of brightness.
+dist = (1 - ssim(X, Y_tmp))*100;
+pwrTmp = ImgPwr (Y_tmp);
+
+while dist <= dstThreshold && pwrTmp < pwrY_init  %If possible keep transformation.
+    %w = "Entered brighness scaling"
+    Y = Y_tmp;
+    pwrY_init = pwrTmp;
+    
+    scaling_percentage = scaling_percentage + 1; %Try to scale 1% more.
+    Y_tmp = BrightnessScaling(Y, scaling_percentage);%Reduce dstThreshold% of brightness.
+    dist = (1 - ssim(X, Y_tmp))*100;
+    pwrTmp = ImgPwr (Y_tmp);
+end
+
+%Power / Distance exctraction.
+pwrX = ImgPwr (X);
+pwrY = ImgPwr (Y);
+dst_img = (1 - ssim(X, Y))*100;
+energy_saving = ((pwrX - pwrY)/pwrX)*100;
+figure(1);
+imshow(X);
+figure(2);
+imshow(Y);
 %%
 %cd (currentFolder)
 clc

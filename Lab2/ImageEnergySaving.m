@@ -1,5 +1,5 @@
 %% Algorithm part 1.
-dstThreshold = 1; % 1%, 5%, 10%.
+dstThreshold = 10; % 1%, 5%, 10%.
 rootFolder = pwd;
 
 dataFolder = rootFolder + "\dataset";
@@ -38,37 +38,49 @@ dst_img = zeros(length(imgLst), 1);
         %Start transformation algorithm for RGB.
         Y = X;
         pwrY_init = ImgPwr (Y);
-        %Exctract color features.
-        [avgR, avgG, avgB] = colorAvg(Y);
-        max_R_G = max(avgR, avgG); 
-
-        %Brightness optimization.
-        Y_tmp = BrightnessScaling(Y, dstThreshold);%Reduce dstThreshold% of brightness.
-        dist = (1 - ssim(Y, Y_tmp))*100;
-        pwrTmp = ImgPwr (Y_tmp);
-        if dist <= dstThreshold && pwrTmp < pwrY_init  %If possible keep transformation.
-            Y = Y_tmp;
-        end
-
-        %Hungry blue optimization.
-        if avgB > max_R_G %Check if Blue average is greater than both Red and Green.
-            k_blue = (double(avgB - max_R_G)/double(avgB))*100;%Percentage distance.
-            Y_tmp = hungryBlue(Y, k_blue);                     %Reduce k% of blue.
-            dist = (1 - ssim(Y, Y_tmp))*100;
-            pwrTmp = ImgPwr (Y_tmp);
-            if dist <= dstThreshold && pwrTmp < pwrY_init %If possible keep transformation.
-                Y = Y_tmp;
-            end
-        end
+       
 
         %Histogram equalization.
         Y_tmp = histeq(Y);
-        dist = (1 - ssim(Y, Y_tmp))*100;
+        dist = (1 - ssim(X, Y_tmp))*100;
         pwrTmp = ImgPwr (Y_tmp);
         if dist <= dstThreshold && pwrTmp < pwrY_init %If possible keep transformation.
             Y = Y_tmp;
+            pwrY_init = pwrTmp;
         end
+        
+        %Hungry blue optimization.
+        %Exctract color features.
+        [avgR, avgG, avgB] = colorAvg(Y);
+        max_R_G = max(avgR, avgG); 
+        %Reduce blue, if possible.
+        if avgB > max_R_G %Check if Blue average is greater than both Red and Green.
+            k_blue = (double(avgB - max_R_G)/double(avgB))*100;%Percentage distance.
+            Y_tmp = hungryBlue(Y, k_blue);                     %Reduce k% of blue.
+            dist = (1 - ssim(X, Y_tmp))*100;
+            pwrTmp = ImgPwr (Y_tmp);
+            if dist <= dstThreshold && pwrTmp < pwrY_init %If possible keep transformation.
+                Y = Y_tmp;
+                pwrY_init = pwrTmp;
+            end
+        end
+        
+       %Brightness optimization.
+        scaling_percentage = 1;
+        Y_tmp = BrightnessScaling(Y, scaling_percentage);%Reduce dstThreshold% of brightness.
+        dist = (1 - ssim(X, Y_tmp))*100;
+        pwrTmp = ImgPwr (Y_tmp);
 
+        while dist <= dstThreshold && pwrTmp < pwrY_init  %If possible keep transformation.
+            Y = Y_tmp;
+            pwrY_init = pwrTmp;
+
+            scaling_percentage = scaling_percentage + 1; %Try to scale 1% more.
+            Y_tmp = BrightnessScaling(Y, scaling_percentage);%Reduce dstThreshold% of brightness.
+            dist = (1 - ssim(X, Y_tmp))*100;
+            pwrTmp = ImgPwr (Y_tmp);
+        end
+        
         %Power / Distance exctraction.
         pwrX = ImgPwr (X);
         pwrY = ImgPwr (Y);
@@ -78,9 +90,9 @@ dst_img = zeros(length(imgLst), 1);
     end
 mean(energy_saving)
 cd (rootFolder);
-%Average for dstMax 1% is 0.9703 % saving.
-%Average for dstMax 5% is 4.9897 % saving.
-%Average for dstMax 10% is 9.6808 % saving.
+%Average for dstMax 1%  is 6.9954%   saving, max distance 0.99%.
+%Average for dstMax 5%  is 16.6276%  saving, max distance 4.99%.
+%Average for dstMax 10% is 23.5410%  saving, max distance 9.99%.
 %% Reset environment.
 clc
 clear
