@@ -4,9 +4,9 @@ function [optimal_img, optimal_pwr, optimal_dst] = optimalTransformation(img_RGB
     gu = (vdd_target/vdd_original) + gl;
     %Apply all 3 transformations BrightnessCompensation,
     %ContrastEnhancement, both.
-    tmp_DVS_comp = LCDBrightnessCompensation (img_RGB,  (vdd_original/vdd_target - 1)/2);
-    tmp_DVS_en   = LCDContrastEnhancement (img_RGB, vdd_target/vdd_original);
-    tmp_DVS_cun  = LCDCuncurrentBrightnessContrast (img_RGB, gl, gu);
+    tmp_DVS_comp = OLEDBrightnessCompensation (img_RGB,  (vdd_original/vdd_target - 1)/2);
+    tmp_DVS_en   = OLEDContrastEnhancement (img_RGB, vdd_target/vdd_original);
+    tmp_DVS_cun  = OLEDCuncurrentBrightnessContrast (img_RGB, gl, gu);
     %Compute Icell for the three cases.
     tmp_DVS_cell_comp = Icell(tmp_DVS_comp, vdd_target);
     tmp_DVS_cell_en   = Icell(tmp_DVS_en, vdd_target);

@@ -58,7 +58,7 @@ for i = 1:length(imgLst)
     dst_ssim_ori(i) = (1 - ssim(img_RGB, img_RGB_sat))*100;
 
     %Apply contrast enhancement and decrease Vdd. 
-    img_RGB_mod = LCDContrastEnhancement(img_RGB, vdd/vdd_original);
+    img_RGB_mod = OLEDContrastEnhancement(img_RGB, vdd/vdd_original);
     %Compute Cell current.
     cell_mod = Icell (img_RGB_mod, vdd); 
 
