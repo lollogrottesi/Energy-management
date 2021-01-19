@@ -1,21 +1,30 @@
 load('gmonths.mat')
 
 % sensor activation durantion 
-air_time = 30; 
-methane_time = 30; 
-temp_time = 6; 
-mic_time = 12; 
-transmit_time = 24; 
-mc_time = 6; 
+air_time = 30;
+methane_time = 30;
+temp_time = 6;
+mic_time = 12;
+transmit_time = 24;
+mc_time = 6;
 
 % activation delay
 % parallel exec
+pause = 1;
+%SERIAL CONFIGURATION.
 air_delay = 0; 
 methane_delay = 0; 
 temp_delay = 0; 
-mic_delay = 0;
-mc_delay = 30; 
+mic_delay  = 0;
+mc_delay   = 30; 
 transmit_delay = mc_delay + mc_time;
+
+%air_delay = 0; 
+%methane_delay = air_time + pause; 
+%temp_delay = mic_delay + mic_time +  pause; 
+%mic_delay  = methane_delay + methane_time + pause;
+%mc_delay   = temp_delay + temp_time + pause; 
+%transmit_delay = mc_delay + mc_time;
 
 % period
 % setting 1: 120 (2 minutes)
